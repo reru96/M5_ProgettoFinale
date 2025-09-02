@@ -8,8 +8,8 @@ public class StartMenu : MonoBehaviour
 {
     public void StartGame()
     {
-        RespawnManager.Instance.ResetTries();
         SceneManager.LoadScene(1);
+        RespawnManager.Instance.ResetTries();
 
     }
 

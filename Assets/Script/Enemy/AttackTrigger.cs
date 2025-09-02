@@ -23,7 +23,7 @@ public class AttackTrigger : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            zombieParent.StopAttack();
+            zombieParent.StopAttack(other);
         }
     }
 }

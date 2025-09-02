@@ -4,17 +4,16 @@ using UnityEngine;
 
 public class LevelMusic : MonoBehaviour
 {
-    [SerializeField] private AudioClip levelMusic;
+    [SerializeField] private AudioClip clip;
+    [SerializeField] private SoundType levelMusic;
     [SerializeField] private float volume;
-    [SerializeField] private string soundGroup = "SfxVolume";
-    [SerializeField] private int number = 2;
+    [SerializeField] private string soundGroup = "MusicVolume";  
 
     private void Start()
     {
-        if (AudioManager.Instance != null && levelMusic != null)
+        if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlayMusic(levelMusic, number);
-            AudioManager.Instance.SetVolume(volume, soundGroup);
+            AudioManager.Instance.PlaySound(levelMusic, v => AudioManager.Instance.SetVolume(volume, soundGroup));
         }
     }
 }

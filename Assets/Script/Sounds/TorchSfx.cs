@@ -5,12 +5,12 @@ using UnityEngine;
 
 public class TorchSfx : MonoBehaviour
 {
-    [SerializeField] private AudioClip sfxMusic;
+    [SerializeField] private SoundType sfxMusic;
     [SerializeField] private float volume = 1f;
     [SerializeField] private string soundGroup = "MusicVolume";
     [SerializeField] private float radius = 5f;
-    [SerializeField] private int number = 1;
     [SerializeField] private LayerMask player;
+    private AudioManager manager;
 
     private bool playerIsNear = false;
     private bool musicIsPlaying = false;
@@ -21,8 +21,7 @@ public class TorchSfx : MonoBehaviour
         if (playerIsNear)
         {
            
-            AudioManager.Instance.PlayMusic(sfxMusic, number);
-            AudioManager.Instance.SetVolume(volume, soundGroup);
+            AudioManager.Instance.PlaySound(sfxMusic, v => AudioManager.Instance.SetVolume(volume, soundGroup));
             musicIsPlaying = true;
         }
         

@@ -35,7 +35,7 @@ public class EnemyPathController : MonoBehaviour
 
     protected virtual void Start()
     {
-        agent = GetComponentInParent<NavMeshAgent>();
+        agent = GetComponent<NavMeshAgent>();
         InitializeVisionCone();
 
         GameObject playerObj = GameObject.FindWithTag("Player");

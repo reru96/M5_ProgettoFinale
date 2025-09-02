@@ -4,8 +4,6 @@ using JetBrains.Annotations;
 using UnityEngine;
 using UnityEngine.AI;
 
-[RequireComponent(typeof(Animator))]
-[RequireComponent(typeof(NavMeshAgent))]
 public class ZombieAnimation : MonoBehaviour
 {
     private Animator animator;
@@ -15,7 +13,7 @@ public class ZombieAnimation : MonoBehaviour
     private void Awake()
     {
         animator = GetComponent<Animator>();
-        agent = GetComponent<NavMeshAgent>();
+        agent = GetComponentInParent<NavMeshAgent>();
     }
 
     private void Update()
@@ -34,7 +32,7 @@ public class ZombieAnimation : MonoBehaviour
         StartCoroutine(AttackCoroutine(player));
     }
 
-    public void StopAttack()
+    public void StopAttack(Collider player)
     {
         isAttacking = false;
         animator.SetBool("isAttacking", false);
