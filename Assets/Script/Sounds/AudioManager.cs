@@ -1,100 +1,123 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine.Audio;
 using UnityEngine;
-using UnityEngine.Rendering;
+using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
 
-[RequireComponent(typeof(AudioSource))]
-public class AudioManager : MonoBehaviour
+[RequireComponent(typeof(AudioSource))] 
+public class AudioManager : Singleton<AudioManager>
 {
-    private static AudioManager instance;
-    private static bool _isQuitting = false;
-
-    public static AudioManager Instance
-    {
-        get
-        {
-            if (_isQuitting) return null;
-            if (instance == null) CreateOrGetInstance();
-            return instance;
-        }
-    }
-    private AudioSource audioSource;
-
     [Header("Audio Mixer")]
     [SerializeField] private AudioMixer audioMixer;
-    [SerializeField] private string masterVolumeParam = "MusicVolume";
-    [SerializeField] private SoundList[] soundList;
+    [SerializeField] private string musicVolumeParam = "MusicVolume";
+    [SerializeField] private string sfxVolumeParam = "SfxVolume";
 
-    private static void CreateOrGetInstance()
-    {
-        instance = FindObjectOfType<AudioManager>();
-        if (instance == null)
-        {
-            GameObject go = new GameObject("AudioManager");
-            instance = go.AddComponent<AudioManager>();
-            DontDestroyOnLoad(go);
-        }
-    }
+    [Header("Audio Sources")]
+    private AudioSource musicSource;
+    private AudioSource sfxSource;
 
-    private void Awake()
+    [Header("Audio Library")]
+    [SerializeField] private AudioLibrary audioLibrary;
+    [SerializeField] private SceneMusicLibrary sceneMusicLibrary;
+    
+
+    private Dictionary<string, AudioClip> audioDict = new Dictionary<string, AudioClip>();
+    private Dictionary<string, string> sceneMusicDict = new Dictionary<string, string>();
+
+    protected override bool ShouldBeDestroyOnLoad() => false;
+
+    protected override void Awake()
     {
-        if (instance == null)
+        base.Awake();
+
+      
+        if (musicSource == null)
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
+            musicSource = gameObject.AddComponent<AudioSource>();
+            musicSource.outputAudioMixerGroup = audioMixer.FindMatchingGroups("Music")[0];
+            musicSource.loop = true;
         }
-        else if (instance != this)
+
+        if (sfxSource == null)
         {
-            Destroy(gameObject);
-            return;
+            sfxSource = gameObject.AddComponent<AudioSource>();
+            sfxSource.outputAudioMixerGroup = audioMixer.FindMatchingGroups("Sfx")[0];
         }
+
+    
+        if (audioLibrary != null)
+        {
+            foreach (var entry in audioLibrary.clips)
+            {
+                if (!audioDict.ContainsKey(entry.key))
+                    audioDict.Add(entry.key, entry.clip);
+            }
+        }
+
+        if (sceneMusicLibrary != null)
+        {
+            foreach (var entry in sceneMusicLibrary.sceneMusics)
+            {
+                if (!sceneMusicDict.ContainsKey(entry.sceneName))
+                    sceneMusicDict.Add(entry.sceneName, entry.musicKey);
+            }
+        }
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
     }
 
     private void Start()
     {
-        if (!Application.isPlaying) return;
-        audioSource = GetComponent<AudioSource>();
+        OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
+    }
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+        SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-  
-    public void PlaySound(SoundType sound, Action<float> setVolumeCallback = null)
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        AudioClip[] clips = instance.soundList[(int)sound].Sounds;
-        if (clips == null || clips.Length == 0) return;
-
-        AudioClip randomClip = clips[UnityEngine.Random.Range(0, clips.Length)];
-        float volume = 1f;
-        setVolumeCallback?.Invoke(volume);
-        instance.audioSource.PlayOneShot(randomClip, volume);
-    }
-
-    public void SetVolume(float volume, string volumeGroup)
-    {
-        if (audioMixer == null) return;
-
-        float dB = Mathf.Log10(Mathf.Clamp(volume, 0.0001f, 1f)) * 20f;
-        audioMixer.SetFloat(volumeGroup, dB);
-    }
-
-#if UNITY_EDITOR
-    private void OnValidate()
-    {
-        string[] names = Enum.GetNames(typeof(SoundType));
-        Array.Resize(ref soundList, names.Length);
-        for (int i = 0; i < soundList.Length; i++)
+        if (sceneMusicDict.TryGetValue(scene.name, out var musicKey))
         {
-            soundList[i].name = names[i];
+            PlayMusic(musicKey);
         }
     }
-#endif
-}
 
-[Serializable]
-public struct SoundList
-{
-    [HideInInspector] public string name;
-    [SerializeField] private AudioClip[] sounds;
-    public AudioClip[] Sounds { get => sounds; }
+    public void PlayMusic(string key, float volume = 1f)
+    {
+        if (audioDict.TryGetValue(key, out var clip))
+        {
+            musicSource.clip = clip;
+            musicSource.volume = volume;
+            musicSource.Play();
+        }
+    }
+
+    public void StopMusic() => musicSource.Stop();
+
+    public void PlaySfx(string key, float volume = 1f)
+    {
+        if (audioDict.TryGetValue(key, out var clip))
+        {
+            sfxSource.PlayOneShot(clip, volume);
+        }
+    }
+
+    public AudioClip GetClip(string key)
+    {
+        if (audioDict.TryGetValue(key, out var clip))
+            return clip;
+        return null;
+    }
+
+    public void SetMusicVolume(float volume)
+    {
+        audioMixer.SetFloat(musicVolumeParam, Mathf.Log10(Mathf.Clamp(volume, 0.0001f, 1f)) * 20f);
+    }
+
+    public void SetSfxVolume(float volume)
+    {
+        audioMixer.SetFloat(sfxVolumeParam, Mathf.Log10(Mathf.Clamp(volume, 0.0001f, 1f)) * 20f);
+    }
 }

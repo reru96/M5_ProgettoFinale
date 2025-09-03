@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class RespawnManager : MonoBehaviour
+public class RespawnManager : Singleton<RespawnManager> 
 {
-
-    public static RespawnManager Instance;
-
     [Header("Tentativi")]
     [SerializeField] private int maxTry = 3;
     private int leftTry;
@@ -21,19 +18,11 @@ public class RespawnManager : MonoBehaviour
 
     private GameObject player;
 
-    private void Awake()
-    {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
+    protected override bool ShouldBeDestroyOnLoad() => false; 
 
+    protected override void Awake()
+    {
+        base.Awake();
         leftTry = maxTry;
     }
 
@@ -43,8 +32,9 @@ public class RespawnManager : MonoBehaviour
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
+        base.OnDestroy(); 
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
@@ -72,7 +62,7 @@ public class RespawnManager : MonoBehaviour
 
         if (leftTry > 0)
         {
-            StartCoroutine(RespawnRoutine()); 
+            StartCoroutine(RespawnRoutine());
         }
         else
         {
@@ -86,9 +76,9 @@ public class RespawnManager : MonoBehaviour
 
         bool done = false;
         ScreenFader.Instance.FadeOut(() => done = true);
-  
+
         while (!done) yield return null;
-       
+
         player.SetActive(false);
         yield return new WaitForSeconds(respawnDelay);
 
