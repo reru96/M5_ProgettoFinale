@@ -4,34 +4,56 @@ using UnityEngine.AI;
 
 public class EnemyGuarding : EnemyPathController
 {
+
     [Header("Guard Settings")]
-    public float rotationSpeed = 45f;
-    public float rotationAngle = 45f;
-    private float startYaw;
-    private bool rotatingRight = true;
+    [SerializeField] private float rotationAngle = 45f;   
+    [SerializeField] private float rotationSpeed = 60f;   
+    [SerializeField] private float pauseTime = 1f;        
+
+    private Quaternion leftRotation;
+    private Quaternion rightRotation;
+    private Quaternion targetRotation;
+    private bool lookingRight = true;
+    private float pauseTimer = 0f;
 
     protected override void Start()
     {
-        base.Start(); 
+        base.Start();
 
-        startYaw = transform.eulerAngles.y;
+        
+        leftRotation = Quaternion.Euler(0, transform.eulerAngles.y - rotationAngle, 0);
+        rightRotation = Quaternion.Euler(0, transform.eulerAngles.y + rotationAngle, 0);
+        targetRotation = rightRotation;
+    }
 
-        if (agent != null)
+    protected override void HandlePatrolling()
+    {
+      
+        GuardLookAround();
+
+        if (canSeePlayerNow)
         {
-            agent.isStopped = true;
-            agent.ResetPath();
+            ChangeState(State.Chasing);
         }
     }
 
-  
-    protected override void HandlePatrolling()
+    private void GuardLookAround()
     {
-        float targetRotation = rotatingRight ? startYaw + rotationAngle : startYaw - rotationAngle;
-        float step = rotationSpeed * Time.deltaTime;
-        float newY = Mathf.MoveTowardsAngle(transform.eulerAngles.y, targetRotation, step);
-        transform.eulerAngles = new Vector3(transform.eulerAngles.x, newY, transform.eulerAngles.z);
+        if (pauseTimer > 0)
+        {
+            pauseTimer -= Time.deltaTime;
+            return;
+        }
 
-        if (Mathf.Abs(Mathf.DeltaAngle(newY, targetRotation)) < 0.5f)
-            rotatingRight = !rotatingRight;
+       
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+
+       
+        if (Quaternion.Angle(transform.rotation, targetRotation) < 1f)
+        {
+            lookingRight = !lookingRight;
+            targetRotation = lookingRight ? rightRotation : leftRotation;
+            pauseTimer = pauseTime;
+        }
     }
 }
